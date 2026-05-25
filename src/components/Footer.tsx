@@ -209,14 +209,9 @@ const Footer = () => {
               </svg>
             </span>{" "}
             by{" "}
-            <a
-              href="https://iemafzalhassan.tech"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium hover:text-primary transition-all duration-300 hover:underline decoration-primary decoration-2 underline-offset-4"
-            >
-              Md. Afzal Hassan Ehsani
-            </a>
+            <span className="font-medium">
+              Santosh Pathak
+            </span>
           </div>
           
           <div className="flex items-center justify-center gap-2 text-xs">
