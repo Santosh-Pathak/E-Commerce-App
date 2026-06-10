@@ -9,7 +9,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { HiMenuAlt2 } from "react-icons/hi";
 import { IoChevronDownOutline } from "react-icons/io5";
-import { FaGithub } from "react-icons/fa";
 import { useDispatch } from "react-redux";
 import MobileMenu from "./MobileMenu";
 import Modal from "./Modal";
@@ -159,22 +158,6 @@ const Navbar = () => {
             <div className="hidden lg:block">
               <ToggleTheme />
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="hidden md:flex items-center gap-2 hover:bg-primary hover:text-white"
-              asChild
-            >
-              <a
-                href="https://github.com/iemafzalhassan/EasyShop"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2"
-              >
-                <FaGithub className="text-lg" />
-                <span>Source Code</span>
-              </a>
-            </Button>
             {!isAuthenticated && (
               <Link href="/login">
                 <Button>Join</Button>

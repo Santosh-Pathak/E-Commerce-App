@@ -93,3 +93,12 @@ terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
 terra-key.pub
 terra-key
+
+# AWS CLI installer (local download — do not commit)
+/aws/
+awscliv2.zip
+
+# AWS credentials & local config (never commit secrets)
+.aws/
+**/credentials
+**/config
