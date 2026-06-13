@@ -113,6 +113,17 @@ pipeline {
         }
 
         // Add this new stage
+        // it basically updates the kubernetes manifests with the new image tag
+        // it uses the update_k8s_manifests function from the shared library
+        // the function is defined in the shared library and is used to update the kubernetes manifests
+        // the function takes the following parameters:
+        // - imageTag: the new image tag
+        // - manifestsPath: the path to the kubernetes manifests
+        // - gitCredentials: the git credentials
+        // - gitUserName: the git user name
+        // - gitUserEmail: the git user email
+        // it is used to update the kubernetes manifests with the new image tag i.e 1 , 2, 3 etc etc
+
         stage('Update Kubernetes Manifests') {
             steps {
                 script {
