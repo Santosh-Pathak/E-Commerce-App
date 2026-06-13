@@ -135,14 +135,14 @@ Install these plugins via "Manage Jenkins" > "Manage Plugins" > "Available":
 
 ### 2. Shared Library Integration
 
-Our pipeline uses a shared library from: [EasyShop Jenkins Shared Library](https://github.com/iemafzalhassan/EasyShop-jenkins-shared-lib)
+Our pipeline uses a shared library from: [EasyShop Jenkins Shared Library](https://github.com/Santosh-Pathak/jenkins-shared-lib)
 
 1. Go to "Manage Jenkins" > "Configure System"
 2. Under "Global Pipeline Libraries":
    - Name: easyshop-shared-lib
    - Default version: main
    - Modern SCM: GitHub
-   - Repository URL: https://github.com/iemafzalhassan/EasyShop-jenkins-shared-lib.git
+   - Repository URL: https://github.com/Santosh-Pathak/jenkins-shared-lib.git
 
 ### 3. Pipeline Stages
 
@@ -166,4 +166,4 @@ Important log locations:
 - [Jenkins Documentation](https://www.jenkins.io/doc/)
 - [Docker Documentation](https://docs.docker.com/)
 - [GitHub Webhooks Guide](https://docs.github.com/en/webhooks)
-- [EasyShop Shared Library](https://github.com/iemafzalhassan/EasyShop-jenkins-shared-lib)
+- [EasyShop Shared Library](https://github.com/Santosh-Pathak/jenkins-shared-lib)
