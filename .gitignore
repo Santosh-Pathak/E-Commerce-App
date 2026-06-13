@@ -102,3 +102,5 @@ awscliv2.zip
 .aws/
 **/credentials
 **/config
+
+/awscli2.zip

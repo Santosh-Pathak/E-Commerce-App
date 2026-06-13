@@ -5,7 +5,7 @@
 module "eks" {
 
   source  = "terraform-aws-modules/eks/aws"
-  version = "19.15.1"
+  version = "~> 20.0"
 
   # Step 1: Cluster identity and API access
   cluster_name                   = local.name
