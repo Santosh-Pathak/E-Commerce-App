@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: easyshop-config
-  namespace: easyshop
+  namespace: E-commerce-app
 data:
   MONGODB_URI: "mongodb://mongodb-service:27017/easyshop"
   NODE_ENV: "production"
