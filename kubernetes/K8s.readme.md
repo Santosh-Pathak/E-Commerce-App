@@ -49,6 +49,7 @@ Manifests are numbered `01`–`12` so you apply them in a logical order: namespa
 
 ```
 kubernetes/
+├── 00-cluster-issuer.yml         ← Let's Encrypt issuer (cert-manager)
 ├── 01-namespace.yml              ← Isolated namespace: easyshop
 ├── 02-mongodb-pv.yml             ← Cluster storage volume for MongoDB
 ├── 03-mongodb-pvc.yml            ← Claims storage inside the namespace
@@ -60,8 +61,12 @@ kubernetes/
 ├── 09-easyshop-service.yml       ← Exposes app inside the cluster
 ├── 10-ingress.yml                ← HTTPS + domain routing from internet
 ├── 11-hpa.yml                    ← CPU-based autoscaling (2–5 pods)
-├── 12-migration-job.yml          ← One-time DB seed/migration
+├── 12-migration-job.yml          ← One-time DB seed/migration (manual apply)
+├── kustomization.yaml            ← Kustomize bundle (01–11, excludes migration job)
 └── K8s.readme.md                 ← This guide
+
+argocd/
+└── easyshop-application.yml      ← Argo CD Application manifest (GitOps)
 ```
 
 All namespaced resources use **`namespace: easyshop`**, matching `01-namespace.yml`.
@@ -81,9 +86,13 @@ Before applying these manifests:
    - **NGINX Ingress Controller** (Helm) — required for `10-ingress.yml`
    - **cert-manager** (Helm) — for TLS certificates on Ingress
 4. **Docker images** built and pushed (Jenkins pipeline or manual):
-   - App: `trainwithshubham/easyshop-app:<tag>` (update to your Docker Hub user in `08`)
-   - Migration: `trainwithshubham/easyshop-migration:<tag>` (update in `12`)
-5. **DNS** pointing your domain (e.g. `easyshop.letsdeployit.com`) to the Ingress load balancer
+   - App: `Santosh-Pathak/E-Commerce-App:<tag>`
+   - Migration: `Santosh-Pathak/E-Commerce-App-migration:<tag>`
+5. **ClusterIssuer** applied once after cert-manager is installed:
+   ```bash
+   kubectl apply -f kubernetes/00-cluster-issuer.yml
+   ```
+6. **DNS** pointing your domain (e.g. `easyshop.letsdeployit.com`) to the Ingress load balancer
 
 ---
 
@@ -133,16 +142,17 @@ Migration Job (12) ──one-shot──► MongoDB (seed data)
 Apply files in numeric order. Each step builds on the previous one.
 
 ```bash
-kubectl apply -f kubernetes/01-namespace.yml
-kubectl apply -f kubernetes/02-mongodb-pv.yml
-# ... continue through 12
+kubectl apply -f kubernetes/00-cluster-issuer.yml
+kubectl apply -k kubernetes/
 ```
 
-Or apply the whole folder at once (Kubernetes sorts by dependency where possible):
+---
 
-```bash
-kubectl apply -f kubernetes/
-```
+### Step 0 — TLS issuer (`00-cluster-issuer.yml`)
+
+**What it does:** Registers a cluster-wide Let's Encrypt issuer so cert-manager can provision TLS certificates for the Ingress.
+
+**Requires:** cert-manager installed on the cluster.
 
 ---
 
@@ -210,7 +220,7 @@ mongodb://mongodb-service:27017/easyshop
 | Setting | Value | Meaning |
 |---------|-------|---------|
 | `replicas` | 2 | Two app pods for availability |
-| `image` | `trainwithshubham/easyshop-app:1` | Docker image (Jenkins updates the tag) |
+| `image` | `Santosh-Pathak/E-Commerce-App:1` | Docker image (Jenkins updates the tag) |
 | `containerPort` | 3000 | Next.js listens here |
 | Probes | startup / readiness / liveness | HTTP GET `/` on port 3000 |
 | `envFrom` | ConfigMap + Secret | Loads `04` and `05` |
@@ -231,10 +241,11 @@ mongodb://mongodb-service:27017/easyshop
 
 | Annotation | Purpose |
 |------------|---------|
-| `kubernetes.io/ingress.class: nginx` | Use NGINX Ingress Controller |
+| `cert-manager.io/cluster-issuer: letsencrypt-prod` | Request TLS cert from ClusterIssuer |
+| `ingressClassName: nginx` | Use NGINX Ingress Controller |
 | `nginx.ingress.kubernetes.io/ssl-redirect: "true"` | Force HTTPS |
 | `nginx.ingress.kubernetes.io/proxy-body-size: "50m"` | Allow larger uploads |
-| TLS `secretName: easyshop-tls-secret` | TLS cert (often issued by cert-manager) |
+| TLS `secretName: easyshop-tls-secret` | TLS cert (issued by cert-manager) |
 
 **Requires:** NGINX Ingress installed on the cluster and DNS pointing to the Ingress load balancer.
 
@@ -259,7 +270,7 @@ target: CPU 70%
 
 ```yaml
 kind: Job
-image: trainwithshubham/easyshop-migration:1
+image: Santosh-Pathak/E-Commerce-App-migration:1
 ```
 
 **What it does:** Runs **once** to seed/migrate MongoDB data (`scripts/migrate-data.ts` in the migration image). Uses the same `MONGODB_URI` as the app.
@@ -307,10 +318,16 @@ The **Jenkins pipeline** (`Jenkinsfile`) builds Docker images and updates image 
 
 | Manifest | Updated field |
 |----------|----------------|
-| `08-easyshop-deployment.yml` | `image: <user>/e-commerce-app:<BUILD_NUMBER>` |
-| `12-migration-job.yml` | `image: <user>/e-commerce-app-migration:<BUILD_NUMBER>` |
+| `08-easyshop-deployment.yml` | `image: Santosh-Pathak/E-Commerce-App:<BUILD_NUMBER>` |
+| `12-migration-job.yml` | `image: Santosh-Pathak/E-Commerce-App-migration:<BUILD_NUMBER>` |
 
-After Jenkins commits and pushes, **Argo CD** (if configured per project README) syncs the cluster to match the repo — new image tags roll out to pods without manual `kubectl apply`.
+After Jenkins commits and pushes, **Argo CD** syncs the cluster from Git. Apply the Application once:
+
+```bash
+kubectl apply -f argocd/easyshop-application.yml
+```
+
+Argo uses `kubernetes/kustomization.yaml` (manifests `01`–`11`; migration job `12` is applied manually).
 
 **GitOps flow:**
 
@@ -325,13 +342,14 @@ Code push → Jenkins build → Docker push → Update 08 & 12 in Git → Argo C
 From the repository root, with `kubectl` pointed at `Lucifer-eks-cluster`:
 
 ```bash
-# Apply everything
-kubectl apply -f kubernetes/
+# ClusterIssuer (once, after cert-manager)
+kubectl apply -f kubernetes/00-cluster-issuer.yml
 
-# Or step by step
-for f in kubernetes/0*.yml kubernetes/1*.yml; do
-  kubectl apply -f "$f"
-done
+# App stack via Kustomize (excludes one-off migration job)
+kubectl apply -k kubernetes/
+
+# Migration job (once per environment)
+kubectl apply -f kubernetes/12-migration-job.yml
 ```
 
 **Suggested first-time sequence:**

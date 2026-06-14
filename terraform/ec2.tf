@@ -5,7 +5,7 @@
 
 # Step 1: Find the latest Ubuntu 24.04 AMI (avoids hard-coding a region-specific AMI ID)
 data "aws_ami" "os_image" {
-  owners      = ["*************"] # Canonical (official Ubuntu publisher)
+  owners      = ["099720109477"] # Canonical (official Ubuntu publisher)
   most_recent = true
   filter {
     name   = "state"

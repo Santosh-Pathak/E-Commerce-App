@@ -97,8 +97,8 @@ sudo ./aws/install
 1. **Clone the Repository:**
 First, clone this repo to your local machine:<br/>
 ```bash
-git clone https://github.com/LondheShubham153/tws-e-commerce-app.git
-cd terraform
+git clone https://github.com/Santosh-Pathak/E-Commerce-App.git
+cd E-Commerce-App/terraform
 ```
 2. **Generate SSH Key Pair:**
 Create a new SSH key to access your EC2 instance:
@@ -233,19 +233,15 @@ sudo systemctl status jenkins
 > > In **Pipeline**<br/>
 > > - **Definition:** `Pipeline script from SCM`<br/>
 > > - **SCM:** `Git`<br/>
-> > - **Repository URL:** `https://github.com/<your user-name/tws-e-commerce-app`<br/>
+> > - **Repository URL:** `https://github.com/Santosh-Pathak/E-Commerce-App`<br/>
 > > - **Credentials:** `github-credentials`<br/>
-> > - **Branch:** master<br/>
+> > - **Branch:** main<br/>
 > > - **Script Path:** `Jenkinsfile`<br/>
 
-#### **Fork Required Repos**<br/>
-> > Fork App Repo:<br/>
-> > * Open the `Jenkinsfile`<br/>
-> > * Change the DockerHub username to yours<br/>
->
-> > **Fork Shared Library Repo:**<br/>
-> > * Edit `vars/update_k8s_manifest.groovy`<br/>
-> > * Update with your `DockerHub username`<br/>
+#### **Fork / configure repos**<br/>
+> > Fork or use your own App Repo:<br/>
+> > * Open `Jenkinsfile` and set `DOCKER_IMAGE_NAME` / `DOCKER_MIGRATION_IMAGE_NAME` to your Docker Hub namespace<br/>
+> > * Manifest tag updates are handled inline in `Jenkinsfile` (no shared-library edit required)<br/>
 > 
 > > **Setup Webhook**<br/>
 > > In GitHub:<br/>
@@ -335,9 +331,14 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 * On the left panel of Argo CD GUI, click on "User Info"
 * Select Update Password and change it.
 
-### **Deploy Your Application in Argo CD GUI**<br/>
+### **Deploy Your Application in Argo CD**<br/>
 
-> 1. On the Argo CD homepage, click on the “New App” button.<br/>
+> **Option A — manifest (recommended):** After Argo CD is installed, apply the Application from this repo:
+> ```bash
+> kubectl apply -f argocd/easyshop-application.yml
+> ```
+
+> **Option B — GUI:** On the Argo CD homepage, click on the “New App” button.<br/>
 
 > 2. Fill in the following details:<br/>
 >  -  **Application Name:**
