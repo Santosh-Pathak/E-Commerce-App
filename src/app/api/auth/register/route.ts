@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       name: "token",
       value: token,
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: (process.env.NEXTAUTH_URL || '').startsWith('https'),
       sameSite: "strict",
       path: "/",
     });

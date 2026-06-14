@@ -5,9 +5,10 @@ metadata:
   namespace: easyshop
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
-    kubernetes.io/ingress.class: "nginx"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
+  ingressClassName: nginx
   tls:
   - hosts:
     - easyshop.letsdeployit.com

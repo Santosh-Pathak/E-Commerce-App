@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: easyshop
+
+resources:
+  - 01-namespace.yml
+  - 02-mongodb-pv.yml
+  - 03-mongodb-pvc.yml
+  - 04-configmap.yml
+  - 05-secrets.yml
+  - 06-mongodb-service.yml
+  - 07-mongodb-statefulset.yml
+  - 08-easyshop-deployment.yml
+  - 09-easyshop-service.yml
+  - 10-ingress.yml
+  - 11-hpa.yml
+  # 12-migration-job.yml is one-off — apply manually: kubectl apply -f kubernetes/12-migration-job.yml

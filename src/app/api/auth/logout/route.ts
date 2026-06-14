@@ -9,7 +9,7 @@ export async function POST() {
     value: "",
     httpOnly: true,
     expires: new Date(0),
-    secure: process.env.NODE_ENV === "production",
+    secure: (process.env.NEXTAUTH_URL || '').startsWith('https'),
     sameSite: "strict",
     path: "/",
   });
