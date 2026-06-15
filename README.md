@@ -19,6 +19,7 @@ EasyShop is a modern, full-stack e-commerce platform built with Next.js 14, Type
 - 📦 Multiple product categories
 - 👤 User profiles and order history
 - 🌙 Dark/Light theme support
+- 📊 Prometheus & Grafana monitoring for EKS cluster and workloads
 
 ## 🏗️ Architecture
 
@@ -45,6 +46,13 @@ EasyShop follows a three-tier architecture pattern:
 - Data Models
 - CRUD Operations
 - Data Validation
+
+### 4. Operations Tier (DevOps & Observability)
+- Terraform (VPC, EKS, Jenkins EC2)
+- Jenkins CI/CD (build, scan, push, GitOps manifest updates)
+- Argo CD continuous deployment
+- NGINX Ingress + cert-manager (HTTPS)
+- Prometheus + Grafana (`kube-prometheus-stack`) for cluster and workload metrics
 
 ## PreRequisites
 
@@ -492,6 +500,157 @@ kubectl get svc nginx-ingress-ingress-nginx-controller -n ingress-nginx -o jsonp
 >> ```bash
 >> kubectl describe challenges -n easyshop
 >> ```
+
+## Observability & Monitoring (Prometheus + Grafana)
+
+Monitor the EKS cluster, Kubernetes components, and workloads using the **kube-prometheus-stack** Helm chart. Run these commands on your **bastion / master machine** (where `kubectl` is configured for `Lucifer-eks-cluster`).
+
+> [!IMPORTANT]
+> Complete [kubeconfig setup](#getting-started) first:
+> ```bash
+> aws eks update-kubeconfig --region eu-west-1 --name Lucifer-eks-cluster
+> ```
+
+### Install Helm (if not already installed)
+
+```bash
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+```
+
+Verify:
+
+```bash
+helm version
+```
+
+### Add Helm repositories
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+```
+
+> [!NOTE]
+> The legacy `stable` Helm repo is deprecated and not required for this stack.
+
+### Create Prometheus namespace
+
+```bash
+kubectl create namespace prometheus
+kubectl get ns prometheus
+```
+
+### Install kube-prometheus-stack
+
+Release name `stable` is used below so service names match the edit commands (e.g. `stable-grafana`).
+
+```bash
+helm install stable prometheus-community/kube-prometheus-stack -n prometheus
+```
+
+### Verify installation
+
+```bash
+kubectl get pods -n prometheus
+kubectl get svc -n prometheus
+```
+
+### Expose Prometheus (NodePort)
+
+> [!IMPORTANT]
+> Change `type` from `ClusterIP` to `NodePort`, save the file, and ensure the NodePort is allowed in your EKS node security group.
+
+```bash
+kubectl edit svc stable-kube-prometheus-sta-prometheus -n prometheus
+```
+
+![Prometheus service NodePort](https://github.com/user-attachments/assets/90f5dc11-23de-457d-bbcb-944da350152e)
+
+Verify:
+
+```bash
+kubectl get svc -n prometheus
+```
+
+### Expose Grafana (NodePort)
+
+```bash
+kubectl edit svc stable-grafana -n prometheus
+```
+
+![Grafana service NodePort](https://github.com/user-attachments/assets/4a2afc1f-deba-48da-831e-49a63e1a8fb6)
+
+Verify:
+
+```bash
+kubectl get svc -n prometheus
+```
+
+### Grafana login
+
+Get the admin password:
+
+```bash
+kubectl get secret --namespace prometheus stable-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+```
+
+| Field | Value |
+|-------|--------|
+| Username | `admin` |
+| URL | `http://<node-ip>:<grafana-nodeport>` |
+
+### View dashboards
+
+Pre-built dashboards are included for cluster health, nodes, pods, and workloads:
+
+![Grafana dashboards](https://github.com/user-attachments/assets/d2e7ff2f-059d-48c4-92bb-9711943819c4)
+
+![Grafana workload view](https://github.com/user-attachments/assets/647b2b22-cd83-41c3-855d-7c60ae32195f)
+
+![Grafana metrics](https://github.com/user-attachments/assets/cb98a281-a4f5-46af-98eb-afdb7da6b35a)
+
+### What you can monitor
+
+| Layer | Examples |
+|-------|----------|
+| **EKS / cluster** | API server, etcd, scheduler, controller-manager |
+| **Nodes** | CPU, memory, disk, network |
+| **Workloads** | EasyShop pods in `easyshop` namespace, MongoDB StatefulSet |
+| **Ingress** | NGINX controller metrics (when scraped by Prometheus) |
+
+### Uninstall monitoring stack
+
+```bash
+helm uninstall stable -n prometheus
+kubectl delete namespace prometheus
+```
+
+## Clean Up
+
+### Remove monitoring
+
+```bash
+helm uninstall stable -n prometheus
+kubectl delete namespace prometheus
+```
+
+### Destroy infrastructure (Terraform)
+
+From the `terraform/` directory:
+
+```bash
+terraform destroy
+```
+
+### Delete EKS cluster (if created with eksctl instead of Terraform)
+
+```bash
+eksctl delete cluster --name=Lucifer-eks-cluster --region=eu-west-1
+```
+
+---
 
 ## **Congratulations!** <br/>
 ![EasyShop Website Screenshot](./public/Deployed.png)
