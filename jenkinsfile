@@ -4,8 +4,9 @@ which are defined in the Shared Library. This is used to avoid code duplication 
  Jenkinsfile clean and maintainable. The functions defined in the Shared Library can be used a
  cross multiple Jenkinsfiles by simply calling them with the appropriate parameters.
  https://github.com/Santosh-Pathak/jenkins-shared-libraries
+ Register in Jenkins as: easyshop-shared-lib (see JENKINS.md)
 */
-@Library('Shared') _
+@Library('easyshop-shared-lib') _
 
 pipeline {
     agent any
@@ -15,8 +16,8 @@ pipeline {
         DOCKER_IMAGE_NAME = 'Santosh-Pathak/E-Commerce-App'
         DOCKER_MIGRATION_IMAGE_NAME = 'Santosh-Pathak/E-Commerce-App-migration'
         DOCKER_IMAGE_TAG = "${BUILD_NUMBER}"
-        GITHUB_CREDENTIALS = credentials('github-credentials')
         GIT_BRANCH = 'main'
+        GIT_REPO = 'https://github.com/Santosh-Pathak/E-Commerce-App.git'
     }
 
     stages {
@@ -31,7 +32,15 @@ pipeline {
         stage('Clone Repository') {
             steps {
                 script {
-                    clone('https://github.com/Santosh-Pathak/E-Commerce-App.git', 'main', 'github-credentials')
+                    // checkout() replaces clone() — shared library clone() only accepts (url, branch)
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: "*/${GIT_BRANCH}"]],
+                        userRemoteConfigs: [[
+                            url: "${GIT_REPO}",
+                            credentialsId: 'github-credentials'
+                        ]]
+                    ])
                 }
             }
         }
@@ -69,7 +78,8 @@ pipeline {
         stage('Run Unit Tests') {
             steps {
                 script {
-                    run_tests()
+                    // run_tests() is a no-op in the shared library; lint is the available quality gate
+                    sh 'docker run --rm -v "$PWD":/app -w /app node:20-alpine sh -c "npm ci && npm run lint"'
                 }
             }
         }
@@ -123,17 +133,32 @@ pipeline {
         // - gitUserName: the git user name
         // - gitUserEmail: the git user email
         // it is used to update the kubernetes manifests with the new image tag i.e 1 , 2, 3 etc etc
+        // NOTE: implemented inline below (sed + git push) so image names match 08 & 12 manifests
 
         stage('Update Kubernetes Manifests') {
             steps {
                 script {
-                    update_k8s_manifests(
-                        imageTag: env.DOCKER_IMAGE_TAG,
-                        manifestsPath: 'kubernetes',
-                        gitCredentials: 'github-credentials',
-                        gitUserName: 'Jenkins CI',
-                        gitUserEmail: 'pathaksantosh987@gmail.com'
-                    )
+                    sh """
+                        sed -i 's|image: ${DOCKER_IMAGE_NAME}:.*|image: ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|' kubernetes/08-easyshop-deployment.yml
+                        sed -i 's|image: ${DOCKER_MIGRATION_IMAGE_NAME}:.*|image: ${DOCKER_MIGRATION_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|' kubernetes/12-migration-job.yml
+                    """
+                    withCredentials([usernamePassword(
+                        credentialsId: 'github-credentials',
+                        usernameVariable: 'GIT_USER',
+                        passwordVariable: 'GIT_TOKEN'
+                    )]) {
+                        sh """
+                            git config user.name "Jenkins CI"
+                            git config user.email "pathaksantosh987@gmail.com"
+                            git add kubernetes/08-easyshop-deployment.yml kubernetes/12-migration-job.yml
+                            if git diff --staged --quiet; then
+                              echo "Manifest image tags already up to date."
+                            else
+                              git commit -m "ci: update image tags to ${DOCKER_IMAGE_TAG}"
+                              git push https://\${GIT_USER}:\${GIT_TOKEN}@github.com/Santosh-Pathak/E-Commerce-App.git HEAD:${GIT_BRANCH}
+                            fi
+                        """
+                    }
                 }
             }
         }
