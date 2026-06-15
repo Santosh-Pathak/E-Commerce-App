@@ -1,0 +1,69 @@
+# DevSecOps — Trivy security scan on built images (blocks CD if CRITICAL/HIGH found)
+# Runs after Build succeeds; triggers CD via workflow_run
+# Runner: self-hosted (labels: self-hosted, linux, easyshop)
+name: DevSecOps
+
+on:
+  workflow_run:
+    workflows: [Build]
+    types: [completed]
+  workflow_dispatch:
+
+concurrency:
+  group: easyshop-pipeline-main
+  cancel-in-progress: false
+
+env:
+  DOCKER_IMAGE_NAME: Santosh-Pathak/E-Commerce-App
+  DOCKER_MIGRATION_IMAGE_NAME: Santosh-Pathak/E-Commerce-App-migration
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  security-scan:
+    name: Trivy Image Scan
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: [self-hosted, linux, easyshop]
+    steps:
+      - name: Download image tag from Build workflow
+        uses: actions/download-artifact@v4
+        with:
+          name: image-tag
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Load image tag
+        run: |
+          IMAGE_TAG=$(cat image-tag.txt)
+          echo "IMAGE_TAG=${IMAGE_TAG}" >> "${GITHUB_ENV}"
+
+      - name: Scan app image with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.DOCKER_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+
+      - name: Scan migration image with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.DOCKER_MIGRATION_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+
+      - name: Re-upload image tag for CD workflow
+        run: echo "${IMAGE_TAG}" > image-tag.txt
+
+      - name: Upload image tag artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-tag
+          path: image-tag.txt
+          retention-days: 7

@@ -85,6 +85,8 @@ Before applying these manifests:
 3. **Cluster add-ons** (from project README):
    - **NGINX Ingress Controller** (Helm) — required for `10-ingress.yml`
    - **cert-manager** (Helm) — for TLS certificates on Ingress
+   - **Metrics Server** — required for HPA (`11-hpa.yml`)
+   - **Prometheus + Grafana** (`kube-prometheus-stack` Helm chart) — cluster and workload monitoring (see README *Observability & Monitoring*)
 4. **Docker images** built and pushed (Jenkins pipeline or manual):
    - App: `Santosh-Pathak/E-Commerce-App:<tag>`
    - Migration: `Santosh-Pathak/E-Commerce-App-migration:<tag>`
@@ -314,7 +316,7 @@ StatefulSet mongodb (07)
 
 ## 7. How CI/CD updates these manifests
 
-The **Jenkins pipeline** (`Jenkinsfile`) builds Docker images and updates image tags in Git:
+The **Jenkins pipeline** (`Jenkinsfile`) or **GitHub Actions** (`.github/workflows/ci.yml`, `build.yml`, `devsecops.yml`, `cd.yml`) builds Docker images and updates image tags in Git:
 
 | Manifest | Updated field |
 |----------|----------------|
