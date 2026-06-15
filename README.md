@@ -48,8 +48,8 @@ EasyShop follows a three-tier architecture pattern:
 - Data Validation
 
 ### 4. Operations Tier (DevOps & Observability)
-- Terraform (VPC, EKS, Jenkins EC2)
-- Jenkins CI/CD (build, scan, push, GitOps manifest updates)
+- Terraform (VPC, EKS, Jenkins EC2 optional)
+- **CI:** Self-hosted GitHub Actions (`.github/workflows/ci.yml`, `build.yml`, `devsecops.yml`, `cd.yml`) **or** Jenkins (`Jenkinsfile`)
 - Argo CD continuous deployment
 - NGINX Ingress + cert-manager (HTTPS)
 - Prometheus + Grafana (`kube-prometheus-stack`) for cluster and workload metrics
@@ -158,6 +158,105 @@ aws eks --region eu-west-1 update-kubeconfig --name Lucifer-eks-cluster
 ```bash
 kubectl get nodes
 ```
+
+## CI with GitHub Actions (self-hosted runner)
+
+Run the pipeline on your **EC2 / bastion** using a GitHub Actions **self-hosted runner** (reuses Docker + Trivy from `terraform/install_tools.sh`).
+
+### Workflow files
+
+| File | Purpose | Trigger |
+|------|---------|---------|
+| [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | Lint / validate | Push or PR to `main` |
+| [`.github/workflows/build.yml`](.github/workflows/build.yml) | Build Docker images (local) | After **CI** succeeds on `main` |
+| [`.github/workflows/devsecops.yml`](.github/workflows/devsecops.yml) | Trivy security scan | After **Build** succeeds |
+| [`.github/workflows/cd.yml`](.github/workflows/cd.yml) | Push images + update K8s manifests | After **DevSecOps** succeeds |
+
+### Pipeline flow (push to `main`)
+
+```
+CI (lint) → Build (docker build) → DevSecOps (Trivy) → CD (push + GitOps) → Argo CD → EKS
+```
+
+PRs to `main` run **CI only** (lint). Build / DevSecOps / CD do not run on PRs.
+
+All jobs use: `runs-on: [self-hosted, linux, easyshop]`
+
+### Self-hosted runner setup (on EC2)
+
+SSH into your Terraform EC2 instance (Jenkins/bastion host), then:
+
+**1. Install runner dependencies** (if not already from `install_tools.sh`):
+
+```bash
+# Docker, Trivy, git, aws-cli, kubectl, helm are installed by terraform/install_tools.sh
+docker --version
+trivy --version
+```
+
+**2. Get a registration token**
+
+GitHub → **Settings → Actions → Runners → New self-hosted runner → Linux**
+
+Copy the token shown on that page (expires in ~1 hour).
+
+**3. Register the runner**
+
+From the repo root on the EC2 machine:
+
+```bash
+chmod +x scripts/setup-github-runner.sh
+sudo ./scripts/setup-github-runner.sh <YOUR_REGISTRATION_TOKEN>
+```
+
+This registers the runner with labels `easyshop,linux` (workflow requires label **`easyshop`**).
+
+**4. Verify**
+
+GitHub → **Settings → Actions → Runners** — status should be **Idle** (green).
+
+Manual install (alternative to the script):
+
+```bash
+mkdir actions-runner && cd actions-runner
+curl -o actions-runner-linux-x64.tar.gz -L https://github.com/actions/runner/releases/latest/download/actions-runner-linux-x64.tar.gz
+tar xzf actions-runner-linux-x64.tar.gz
+./config.sh --url https://github.com/Santosh-Pathak/E-Commerce-App --token <TOKEN> --labels easyshop,linux
+sudo ./svc.sh install && sudo ./svc.sh start
+sudo usermod -aG docker $USER   # or the user running the runner service
+```
+
+> [!CAUTION]
+> Self-hosted runners execute arbitrary code from workflows. Only run **trusted** PRs on this machine (the workflow skips fork PRs). Prefer a **private** repo or dedicated CI EC2.
+
+### Required GitHub secrets
+
+In **GitHub → Settings → Secrets and variables → Actions**, add:
+
+| Secret | Description |
+|--------|-------------|
+| `DOCKERHUB_USERNAME` | Docker Hub username |
+| `DOCKERHUB_TOKEN` | Docker Hub access token (not password) |
+
+Manifest commits use `GITHUB_TOKEN` with `contents: write` on the runner.
+
+### Enable Actions
+
+1. Push the workflow files under `.github/workflows/` to your repo
+2. Register the self-hosted runner (steps above)
+3. Add Docker Hub secrets
+4. If `main` has branch protection, allow **GitHub Actions** to push
+
+### Flow after CI
+
+```
+push to main → CI → Build → DevSecOps → CD → Argo CD sync → EKS
+```
+
+> [!TIP]
+> With a self-hosted runner you can **skip Jenkins** entirely and still use the same EC2 for CI. Remove or stop Jenkins if you no longer need it: `sudo systemctl stop jenkins && sudo systemctl disable jenkins`
+
+---
 
 ## Jenkins Setup Steps
 > [!TIP]

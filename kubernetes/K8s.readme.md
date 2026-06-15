@@ -316,7 +316,7 @@ StatefulSet mongodb (07)
 
 ## 7. How CI/CD updates these manifests
 
-The **Jenkins pipeline** (`Jenkinsfile`) builds Docker images and updates image tags in Git:
+The **Jenkins pipeline** (`Jenkinsfile`) or **GitHub Actions** (`.github/workflows/ci.yml`, `build.yml`, `devsecops.yml`, `cd.yml`) builds Docker images and updates image tags in Git:
 
 | Manifest | Updated field |
 |----------|----------------|
