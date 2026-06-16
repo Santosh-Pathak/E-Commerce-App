@@ -316,9 +316,9 @@ sudo systemctl status jenkins
 > Scroll to Global Pipeline Libraries section
 >
 > - **Add a New Shared Library:** 
-> - **Name:** shared
+> - **Name:** easyshop-shared-lib
 > - **Default Version:** main
-> - **Project Repository URL:** `https://github.com/<your user-name/jenkins-shared-libraries`.
+> - **Project Repository URL:** `https://github.com/Santosh-Pathak/jenkins-shared-lib.git`
 >
 > [Notes:] 
 > Make sure the repo contains a proper directory structure eq: vars/<br/>
@@ -332,7 +332,7 @@ sudo systemctl status jenkins
 > > In **General**<br/>
 > > - **Description:** EasyShop<br/>
 > > - **Check the box:** `GitHub project`<br/>
-> > - **GitHub Repo URL:** `https://github.com/<your user-name/tws-e-commerce-app`<br/>
+> > - **GitHub Repo URL:** `https://github.com/Santosh-Pathak/E-Commerce-App`<br/>
 >
 > > In **Trigger**<br/>
 > > - **Check the box:**`GitHub hook trigger for GITScm polling`<br/>
@@ -343,12 +343,12 @@ sudo systemctl status jenkins
 > > - **Repository URL:** `https://github.com/Santosh-Pathak/E-Commerce-App`<br/>
 > > - **Credentials:** `github-credentials`<br/>
 > > - **Branch:** main<br/>
-> > - **Script Path:** `Jenkinsfile`<br/>
+> > - **Script Path:** `jenkinsfile`<br/>
 
 #### **Fork / configure repos**<br/>
 > > Fork or use your own App Repo:<br/>
-> > * Open `Jenkinsfile` and set `DOCKER_IMAGE_NAME` / `DOCKER_MIGRATION_IMAGE_NAME` to your Docker Hub namespace<br/>
-> > * Manifest tag updates are handled inline in `Jenkinsfile` (no shared-library edit required)<br/>
+> > * `jenkinsfile` already uses `Santosh-Pathak/E-Commerce-App` and `Santosh-Pathak/E-Commerce-App-migration` on Docker Hub<br/>
+> > * Manifest tag updates are handled inline in `jenkinsfile` (no shared-library edit required)<br/>
 > 
 > > **Setup Webhook**<br/>
 > > In GitHub:<br/>
@@ -456,16 +456,13 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 > Choose `Automatic`.
 
 > 3. In the `Source` section:
-> - **Repo URL:**
-> Add the Git repository URL that contains your Kubernetes manifests.
-> - **Path:** 
- `Kubernetes` (or the actual path inside the repo where your manifests reside)
+> - **Repo URL:** `https://github.com/Santosh-Pathak/E-Commerce-App.git`
+> - **Path:** `kubernetes`
 
 > 4. In the “Destination” section:
 >  -  **Cluster URL:**
  https://kubernetes.default.svc (usually shown as "default")
->  -    **Namespace:**
- tws-e-commerce-app (or your desired namespace)
+>  -    **Namespace:** `easyshop`
 
 > 5. Click on “Create”.
 

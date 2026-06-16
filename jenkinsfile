@@ -3,7 +3,7 @@
 which are defined in the Shared Library. This is used to avoid code duplication and to keep the
  Jenkinsfile clean and maintainable. The functions defined in the Shared Library can be used a
  cross multiple Jenkinsfiles by simply calling them with the appropriate parameters.
- https://github.com/Santosh-Pathak/jenkins-shared-libraries
+ https://github.com/Santosh-Pathak/jenkins-shared-lib
  Register in Jenkins as: easyshop-shared-lib (see JENKINS.md)
 */
 @Library('easyshop-shared-lib') _

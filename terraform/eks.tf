@@ -55,7 +55,7 @@ module "eks" {
       tags = {
         Name        = "Lucifer-demo-ng"
         Environment = "dev"
-        ExtraTag    = "e-commerce-app"
+        ExtraTag    = "easyshop"
       }
     }
   }

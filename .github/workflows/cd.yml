@@ -72,6 +72,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "Manifest image tags already up to date."
           else
-            git commit -m "cd: update image tags to ${IMAGE_TAG}"
+            git commit -m "cd: update image tags to ${IMAGE_TAG} [skip ci]"
             git push
           fi

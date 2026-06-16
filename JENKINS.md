@@ -131,7 +131,7 @@ Install these plugins via "Manage Jenkins" > "Manage Plugins" > "Available":
    - Pipeline script from SCM
    - Git repository URL
    - Branch: */main
-   - Script Path: Jenkinsfile
+   - Script Path: jenkinsfile
 
 ### 2. Shared Library Integration
 
